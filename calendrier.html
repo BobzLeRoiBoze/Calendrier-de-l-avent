@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calendrier de l'Avent</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 5px;
+    }
+
+    #subtitle {
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+      color: #9ca3af;
+    }
+
+    #today-info {
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+
+    .calendar-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(60px, 1fr));
+      gap: 10px;
+    }
+
+    .day-button {
+      border: none;
+      border-radius: 0.75rem;
+      padding: 20px 0;
+      font-size: 1.4rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, #1f2937, #111827);
+      color: #f9fafb;
+      box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.3);
+      position: relative;
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.2s ease;
+    }
+
+    .day-button:hover:not(.locked) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+      background: linear-gradient(135deg, #111827, #020617);
+    }
+
+    .day-button.locked {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .day-label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+
+    .day-number {
+      display: block;
+    }
+
+    .pieces-container {
+      border-radius: 1rem;
+      padding: 15px;
+      background: rgba(15, 23, 42, 0.9);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .pieces-grid {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(60px, 1fr));
+      gap: 6px;
+    }
+
+    .piece {
+      position: relative;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      height: 70px;
+      background: #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      color: #9ca3af;
+      box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.2);
+    }
+
+    .piece.revealed {
+      background-image: linear-gradient(135deg, #22c55e, #0ea5e9);
+      color: #022c22;
+      font-weight: 700;
+    }
+
+    .piece .piece-label {
+      position: absolute;
+      top: 4px;
+      left: 6px;
+      font-size: 0.7rem;
+      color: #e5e7eb;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    .piece.locked::after {
+      content: "🔒";
+      font-size: 1.3rem;
+    }
+
+    .piece.revealed::after {
+      content: "";
+    }
+
+    /* Modal */
+
+    #challenge-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+
+    #challenge-modal.open {
+      display: flex;
+    }
+
+    .modal-inner {
+      background: #020617;
+      border-radius: 1rem;
+      max-width: 700px;
+      width: 100%;
+      margin: 10px;
+      padding: 20px 20px 16px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.3rem;
+    }
+
+    .modal-close {
+      border: none;
+      background: transparent;
+      color: #9ca3af;
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      background: rgba(34, 197, 94, 0.15);
+      color: #bbf7d0;
+      border: 1px solid rgba(34, 197, 94, 0.6);
+      gap: 4px;
+    }
+
+    .badge.locked-badge {
+      background: rgba(248, 250, 252, 0.05);
+      color: #e5e7eb;
+      border-color: rgba(148, 163, 184, 0.7);
+    }
+
+    .modal-body {
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .modal-section {
+      margin-top: 12px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 0.75rem;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+    }
+
+    .modal-section h3 {
+      margin-top: 0;
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+    }
+
+    .small {
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+
+    button.primary {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 14px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #022c22;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.25);
+      margin-top: 6px;
+    }
+
+    button.primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .error {
+      color: #fca5a5;
+      font-size: 0.85rem;
+      margin-top: 4px;
+    }
+
+    .success {
+      color: #bbf7d0;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    .timer {
+      font-size: 1.3rem;
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco,
+        Consolas, "Liberation Mono", "Courier New", monospace;
+      margin: 6px 0;
+    }
+
+    .code-zone {
+      margin-top: 10px;
+      border-top: 1px dashed rgba(75, 85, 99, 0.9);
+      padding-top: 10px;
+    }
+
+    .code-zone label {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+
+    .code-input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+
+    #code-input {
+      flex: 1;
+      min-width: 120px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: #020617;
+      color: #f9fafb;
+    }
+
+    .quiz-question {
+      margin-bottom: 8px;
+    }
+
+    .quiz-question strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .quiz-options label {
+      display: block;
+      font-size: 0.9rem;
+      margin-bottom: 2px;
+    }
+
+    a.link {
+      color: #38bdf8;
+      text-decoration: none;
+    }
+
+    a.link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Calendrier de l'Avent</h1>
+  <p id="subtitle">Pour ma belle et tendre amoureuse 🐴💚</p>
+  <p id="today-info"></p>
+
+  <div class="calendar-container">
+    <!-- Grille des jours -->
+    <div class="grid" id="days-grid">
+      <!-- Boutons générés en JS -->
+    </div>
+
+    <!-- Aperçu des fragments de clé -->
+    <div class="pieces-container">
+      <strong>Fragments de la clé Steam n°1 (jours 1 à 8)</strong>
+      <p class="small">
+        Chaque jour te donne un fragment de la clé Steam. Quand les 8 fragments seront révélés,
+        tu auras la clé complète du jeu à activer sur Steam.
+      </p>
+      <div class="pieces-grid" id="pieces-grid">
+        <!-- Fragments générés en JS -->
+      </div>
+      <p id="full-key" class="small"></p>
+    </div>
+  </div>
+
+  <!-- MODAL DÉFIS -->
+  <div id="challenge-modal">
+    <div class="modal-inner">
+      <div class="modal-header">
+        <h2>Jour <span id="modal-day"></span></h2>
+        <button class="modal-close" id="modal-close" aria-label="Fermer">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="modal-status"></div>
+        <div id="challenge-content"></div>
+        <div class="code-zone" id="code-zone">
+          <p class="small" id="code-hint">
+            Quand tu auras trouvé le code du défi, entre-le ici pour révéler le fragment de la clé.
+          </p>
+          <label for="code-input">Code secret du jour :</label>
+          <div class="code-input-row">
+            <input id="code-input" type="text" autocomplete="off" />
+            <button class="primary" id="validate-code">Valider le code</button>
+          </div>
+          <p id="code-feedback" class=""></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /********** CONFIG **********/
+
+    // Année du calendrier (à adapter si besoin)
+    const CALENDAR_YEAR = 2025;
+
+    // Pour tester sans attendre les bonnes dates
+    const DEBUG_IGNORE_DATES = false; // mets false quand tu seras en décembre
+
+    // Codes secrets par jour (tu as déjà mis les tiens ici)
+    const SECRET_CODES = {
+      1: "956472",
+      2: "682547",
+      3: "963258",
+      4: "456789",
+      5: "159874",
+      6: "MAITRE",
+      7: "639825",
+      8: "854658"
+    };
+
+    // Fragments de la clé Steam pour les jours 1 à 8
+    // ⚠️ À ADAPTER avec ta vraie clé, découpée en 8 morceaux !
+    // Exemple : si ta clé est AAAA1-BBBB2-CCCC3-DDDD4-EEEE5-FFFF6-GGGG7-HHHH8
+    const STEAM_KEY_FRAGMENTS = {
+      1: "BQ",
+      2: "AT",
+      3: "0-",
+      4: "NY",
+      5: "0J",
+      6: "P-9",
+      7: "3T",
+      8: "0F"
+    };
+
+    // Clé complète (les 8 morceaux assemblés)
+    const FULL_STEAM_KEY = "BQAT0-NY0JP-93T0F";
+
+    // Jour -> Date de déblocage (1 = 1/12, etc.)
+    function getUnlockDate(day) {
+      // Mois 11 = décembre (0-indexé)
+      return new Date(CALENDAR_YEAR, 11, day, 0, 0, 0, 0);
+    }
+
+    function isDayUnlocked(day) {
+      if (DEBUG_IGNORE_DATES) return true;
+      const now = new Date();
+      return now >= getUnlockDate(day);
+    }
+
+    function formatDate(d) {
+      return d.toLocaleDateString("fr-FR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric"
+      });
+    }
+
+    // Sauvegarde quels fragments sont déjà révélés dans le localStorage
+    const STORAGE_KEY = "avent_pieces_revealed_v1";
+
+    function loadRevealedPieces() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return {};
+        return JSON.parse(raw);
+      } catch {
+        return {};
+      }
+    }
+
+    function saveRevealedPieces(map) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+    }
+
+    let revealedPieces = loadRevealedPieces();
+
+    /********** DOM DE BASE **********/
+
+    const todayInfoEl = document.getElementById("today-info");
+    const daysGridEl = document.getElementById("days-grid");
+    const piecesGridEl = document.getElementById("pieces-grid");
+    const fullKeyEl = document.getElementById("full-key");
+
+    const modalEl = document.getElementById("challenge-modal");
+    const modalCloseBtn = document.getElementById("modal-close");
+    const modalDaySpan = document.getElementById("modal-day");
+    const modalStatus = document.getElementById("modal-status");
+    const challengeContent = document.getElementById("challenge-content");
+    const codeZone = document.getElementById("code-zone");
+    const codeInput = document.getElementById("code-input");
+    const validateCodeBtn = document.getElementById("validate-code");
+    const codeFeedback = document.getElementById("code-feedback");
+
+    let currentDay = null;
+    let currentTimerInterval = null;
+
+    /********** INIT **********/
+
+    function initTodayInfo() {
+      const now = new Date();
+      todayInfoEl.textContent =
+        "Nous sommes le " + formatDate(now) +
+        (DEBUG_IGNORE_DATES ? " — mode TEST activé (tous les jours sont déverrouillés)." : ".");
+    }
+
+    function createDayButtons() {
+      for (let day = 1; day <= 8; day++) {
+        const btn = document.createElement("button");
+        btn.className = "day-button";
+        btn.dataset.day = String(day);
+
+        const label = document.createElement("span");
+        label.className = "day-label";
+        label.textContent = "Jour";
+
+        const number = document.createElement("span");
+        number.className = "day-number";
+        number.textContent = day;
+
+        btn.appendChild(label);
+        btn.appendChild(number);
+
+        if (!isDayUnlocked(day)) {
+          btn.classList.add("locked");
+        }
+
+        btn.addEventListener("click", () => openChallenge(day));
+
+        daysGridEl.appendChild(btn);
+      }
+    }
+
+    function createPieces() {
+      for (let day = 1; day <= 8; day++) {
+        const piece = document.createElement("div");
+        piece.className = "piece locked";
+        piece.dataset.day = String(day);
+
+        if (revealedPieces[day]) {
+          piece.classList.remove("locked");
+          piece.classList.add("revealed");
+        }
+
+        const label = document.createElement("span");
+        label.className = "piece-label";
+        label.textContent = "Jour " + day;
+
+        const inner = document.createElement("span");
+        if (revealedPieces[day]) {
+          inner.textContent = STEAM_KEY_FRAGMENTS[day] || "(fragment)";
+        } else {
+          inner.textContent = "Fragment caché";
+        }
+
+        piece.appendChild(label);
+        piece.appendChild(inner);
+
+        piecesGridEl.appendChild(piece);
+      }
+
+      updateFullKeyDisplay();
+    }
+
+    initTodayInfo();
+    createDayButtons();
+    createPieces();
+
+    /********** MODAL **********/
+
+    function openChallenge(day) {
+      currentDay = day;
+
+      const unlocked = isDayUnlocked(day);
+      challengeContent.innerHTML = "";
+      codeFeedback.textContent = "";
+      codeFeedback.className = "";
+      codeInput.value = "";
+
+      modalDaySpan.textContent = day;
+
+      if (currentTimerInterval) {
+        clearInterval(currentTimerInterval);
+        currentTimerInterval = null;
+      }
+
+      // Status (badge)
+      modalStatus.innerHTML = "";
+      const badge = document.createElement("span");
+      if (!unlocked) {
+        badge.className = "badge locked-badge";
+        const d = getUnlockDate(day);
+        badge.textContent =
+          "🔒 Disponible à partir du " + d.toLocaleDateString("fr-FR", {
+            day: "2-digit",
+            month: "2-digit"
+          });
+      } else {
+        badge.className = "badge";
+        badge.textContent = "✅ Défi disponible";
+      }
+      modalStatus.appendChild(badge);
+
+      // Si le jour n'est pas encore ouvert et qu'on n'est pas en debug
+      if (!unlocked && !DEBUG_IGNORE_DATES) {
+        const msg = document.createElement("p");
+        msg.className = "small";
+        msg.style.marginTop = "8px";
+        msg.textContent =
+          "Patience… ce défi se débloquera à la date prévue. Tu pourras alors révéler un fragment de la clé.";
+        challengeContent.appendChild(msg);
+        codeZone.style.display = "none";
+      } else {
+        renderChallengeContent(day);
+        codeZone.style.display = "block";
+      }
+
+      modalEl.classList.add("open");
+    }
+
+    function closeModal() {
+      modalEl.classList.remove("open");
+      if (currentTimerInterval) {
+        clearInterval(currentTimerInterval);
+        currentTimerInterval = null;
+      }
+      currentDay = null;
+    }
+
+    modalCloseBtn.addEventListener("click", closeModal);
+    modalEl.addEventListener("click", (e) => {
+      if (e.target === modalEl) closeModal();
+    });
+
+    /********** RENDU DES DÉFIS **********/
+
+    function renderChallengeContent(day) {
+      switch (day) {
+        case 1:
+          renderDay1();
+          break;
+        case 2:
+          renderDayWithTimer(
+            2,
+            "Squats pendant 5 minutes",
+            "Clique sur « Démarrer le défi », fais un maximum de squats pendant 5 minutes. Le code apparaîtra quand le chrono sera terminé."
+          );
+          break;
+        case 3:
+          renderDay3Quiz();
+          break;
+        case 4:
+          renderSimpleValidateDay(
+            4,
+            "Faire 40 pompes",
+            "Quand tu auras terminé tes 40 pompes, clique sur « Défi accompli » pour obtenir ton code."
+          );
+          break;
+        case 5:
+          renderDayWithTimer(
+            5,
+            "Corde à sauter 5 minutes",
+            "Clique sur « Démarrer le défi », fais 5 minutes de corde à sauter. Le code apparaîtra à la fin du chrono."
+          );
+          break;
+        case 6:
+          renderDay6();
+          break;
+        case 7:
+          renderSimpleValidateDay(
+            7,
+            "Une game de League of Legends en toplane",
+            "Lance une game de LoL en toplane. Quand tu auras fini ta partie, clique sur « Défi accompli » pour obtenir ton code."
+          );
+          break;
+        case 8:
+          renderSimpleValidateDay(
+            8,
+            "Défi de l'alphabet",
+            "Défi de l'alphabet : Dessine chaque lettre de l'alphabet avec tes pieds, les abdos bien gainés ! Quand c'est fait, clique sur « Défi accompli » pour obtenir ton code."
+          );
+          break;
+        default:
+          challengeContent.textContent = "Défi non défini pour ce jour.";
+      }
+    }
+
+    /* Jour 1 : image à télécharger et inspecter */
+
+    function renderDay1() {
+      const section = document.createElement("div");
+      section.className = "modal-section";
+
+      const title = document.createElement("h3");
+      title.textContent = "Jour 1 — Chasse au code dans les métadonnées";
+
+      const p1 = document.createElement("p");
+      p1.textContent =
+        "Le code secret du jour se trouve quelque part caché dans cette image... Sauras-tu le trouver ?";
+
+      const link = document.createElement("a");
+      link.href = "GagaLeOuf.png"; // <-- ton image
+      link.download = "GagaLeOuf.png";
+      link.textContent = "Télécharger l'image du jour 1";
+      link.className = "link";
+
+
+      section.appendChild(title);
+      section.appendChild(p1);
+      section.appendChild(link);
+
+
+      challengeContent.appendChild(section);
+    }
+
+    /* Jours 2 & 5 : chronomètre 5 minutes */
+
+    function renderDayWithTimer(day, titleText, description) {
+      const section = document.createElement("div");
+      section.className = "modal-section";
+
+      const title = document.createElement("h3");
+      title.textContent = titleText;
+
+      const p = document.createElement("p");
+      p.textContent = description;
+
+      const timerEl = document.createElement("div");
+      timerEl.className = "timer";
+      timerEl.textContent = "05:00";
+
+      const info = document.createElement("p");
+      info.className = "small";
+      info.textContent =
+        "Tu peux laisser la page ouverte sur ton téléphone pendant l'effort.";
+
+      const btn = document.createElement("button");
+      btn.className = "primary";
+      btn.textContent = "Démarrer le défi";
+
+      btn.addEventListener("click", () => {
+        startTimer(day, 5 * 60, timerEl, btn);
+      });
+
+      section.appendChild(title);
+      section.appendChild(p);
+      section.appendChild(timerEl);
+      section.appendChild(info);
+      section.appendChild(btn);
+
+      challengeContent.appendChild(section);
+    }
+
+    function startTimer(day, totalSeconds, timerEl, startButton) {
+      if (currentTimerInterval) {
+        clearInterval(currentTimerInterval);
+      }
+
+      let remaining = totalSeconds;
+      startButton.disabled = true;
+
+      function updateDisplay() {
+        const minutes = String(Math.floor(remaining / 60)).padStart(2, "0");
+        const seconds = String(remaining % 60).padStart(2, "0");
+        timerEl.textContent = minutes + ":" + seconds;
+      }
+
+      updateDisplay();
+
+      currentTimerInterval = setInterval(() => {
+        remaining--;
+        updateDisplay();
+        if (remaining <= 0) {
+          clearInterval(currentTimerInterval);
+          currentTimerInterval = null;
+          timerEl.textContent = "Terminé ! 🎉";
+          startButton.disabled = false;
+          showFoundCode(day, "Bravo pour le défi ! Voici ton code :");
+        }
+      }, 1000);
+    }
+
+    /* Jours 4, 7, 8 : bouton "Défi accompli" */
+
+    function renderSimpleValidateDay(day, titleText, description) {
+      const section = document.createElement("div");
+      section.className = "modal-section";
+
+      const title = document.createElement("h3");
+      title.textContent = titleText;
+
+      const p = document.createElement("p");
+      p.textContent = description;
+
+      const btn = document.createElement("button");
+      btn.className = "primary";
+      btn.textContent = "Défi accompli ✅";
+
+      btn.addEventListener("click", () => {
+        showFoundCode(day, "Bien joué ! Voici ton code :");
+      });
+
+      section.appendChild(title);
+      section.appendChild(p);
+      section.appendChild(btn);
+
+      challengeContent.appendChild(section);
+    }
+
+    /* Jour 3 : Quizz chevaux (niveau galop 6 raisonnable) */
+
+    function renderDay3Quiz() {
+      const section = document.createElement("div");
+      section.className = "modal-section";
+
+      const title = document.createElement("h3");
+      title.textContent = "Quizz chevaux — spécial Galop 6";
+
+      const p = document.createElement("p");
+      p.textContent =
+        "Réponds correctement à toutes les questions pour obtenir ton code. Tu peux recommencer autant de fois que tu veux.";
+
+      const questions = [
+        {
+          id: "q1",
+          text: "1) En locomotion, qu'est-ce que le 'rassemblement' ?",
+          options: [
+            "A) Une accélération franche au galop",
+            "B) Une attitude où le cheval reporte plus de poids sur l'arrière-main et raccourcit ses foulées",
+            "C) Une allure plus rapide que l'extension",
+            "D) Une transition montante automatique"
+          ],
+          correct: "B"
+        },
+        {
+          id: "q2",
+          text: "2) Sur un obstacle vertical isolé, quelle trajectoire est la plus recherchée ?",
+          options: [
+            "A) Un saut très plat pour aller vite",
+            "B) Un saut en cloche, symétrique, avec une bonne trajectoire par-dessus la barre",
+            "C) Un appel très loin accompagné d'une grande extension de l'encolure",
+            "D) Un appel très près avec un dos creux"
+          ],
+          correct: "B"
+        },
+        {
+          id: "q3",
+          text: "3) Quel est l'intérêt principal de l'épaule en dedans au trot ?",
+          options: [
+            "A) Rendre le cheval plus rapide",
+            "B) Travailler la flexion latérale et l'engagement du postérieur interne sous la masse",
+            "C) Apprendre au cheval à reculer",
+            "D) Faire une figure jolie pour les photos"
+          ],
+          correct: "B"
+        },
+        {
+          id: "q4",
+          text: "4) En extérieur, quel est le signe d'une fourbure débutante à surveiller ?",
+          options: [
+            "A) Oreilles pointées vers l'avant",
+            "B) Transpiration abondante localisée sur l'encolure seulement",
+            "C) Cheval campé, reportant le poids sur les postérieurs et pieds antérieurs chauds et sensibles",
+            "D) Queue portée très haute"
+          ],
+          correct: "C"
+        }
+      ];
+
+      const quizContainer = document.createElement("div");
+
+      questions.forEach((q) => {
+        const qDiv = document.createElement("div");
+        qDiv.className = "quiz-question";
+
+        const qTitle = document.createElement("strong");
+        qTitle.textContent = q.text;
+
+        const optsDiv = document.createElement("div");
+        optsDiv.className = "quiz-options";
+
+        q.options.forEach((optText) => {
+          const label = document.createElement("label");
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = q.id;
+          radio.value = optText[0]; // La lettre A/B/C/D
+
+          label.appendChild(radio);
+          label.appendChild(document.createTextNode(" " + optText));
+          optsDiv.appendChild(label);
+        });
+
+        qDiv.appendChild(qTitle);
+        qDiv.appendChild(optsDiv);
+        quizContainer.appendChild(qDiv);
+      });
+
+      const btn = document.createElement("button");
+      btn.className = "primary";
+      btn.textContent = "Valider le quizz";
+
+      const quizFeedback = document.createElement("p");
+      quizFeedback.className = "small";
+
+      btn.addEventListener("click", () => {
+        let allAnswered = true;
+        let allCorrect = true;
+
+        questions.forEach((q) => {
+          const radios = document.querySelectorAll("input[name='" + q.id + "']");
+          let chosen = null;
+          radios.forEach((r) => {
+            if (r.checked) chosen = r.value;
+          });
+          if (!chosen) {
+            allAnswered = false;
+          } else if (chosen !== q.correct) {
+            allCorrect = false;
+          }
+        });
+
+        if (!allAnswered) {
+          quizFeedback.textContent = "Réponds à toutes les questions avant de valider.";
+          quizFeedback.style.color = "#fca5a5";
+          return;
+        }
+
+        if (!allCorrect) {
+          quizFeedback.textContent =
+            "Ce n'est pas encore ça… Réessaie, tu peux le faire ! 🐴";
+          quizFeedback.style.color = "#fca5a5";
+        } else {
+          quizFeedback.textContent = "Parfait ! Toutes les réponses sont correctes. 🎉";
+          quizFeedback.style.color = "#bbf7d0";
+          showFoundCode(3, "Cheval de concours ! Voici ton code :");
+        }
+      });
+
+      section.appendChild(title);
+      section.appendChild(p);
+      section.appendChild(quizContainer);
+      section.appendChild(btn);
+      section.appendChild(quizFeedback);
+
+      challengeContent.appendChild(section);
+    }
+
+    /* Jour 6 : appeler Maître toute la journée, code visible à 22h */
+
+    function renderDay6() {
+      const section = document.createElement("div");
+      section.className = "modal-section";
+
+      const title = document.createElement("h3");
+      title.textContent = "M'appeler Maître toute la journée";
+
+      const p = document.createElement("p");
+      p.textContent =
+        "Aujourd'hui, tu dois m'appeler « Maître » toute la journée. Le code ne sera révélé qu'à partir de 22h ce soir. 😈";
+
+      const info = document.createElement("p");
+      info.className = "small";
+      info.textContent =
+        "Reviens ici après 22h pour récupérer le code et révéler ton fragment de clé.";
+
+      const now = new Date();
+      const unlockAt = new Date(
+        CALENDAR_YEAR,
+        11,
+        6,
+        22,
+        0,
+        0,
+        0
+      ); // 6 décembre, 22h
+
+      const msg = document.createElement("p");
+      msg.className = "small";
+
+      if (DEBUG_IGNORE_DATES || now >= unlockAt) {
+        msg.textContent = "Il est 22h (ou plus) : tu peux récupérer ton code !";
+        showFoundCode(6, "Voici ton code :");
+      } else {
+        const remainingMs = unlockAt - now;
+        const remainingMin = Math.ceil(remainingMs / (1000 * 60));
+        msg.textContent =
+          "Encore un peu de patience… le code sera disponible dans environ " +
+          remainingMin +
+          " minute(s).";
+      }
+
+      section.appendChild(title);
+      section.appendChild(p);
+      section.appendChild(info);
+      section.appendChild(msg);
+
+      challengeContent.appendChild(section);
+    }
+
+    /********** GESTION DES CODES **********/
+
+    function showFoundCode(day, message) {
+      const code = SECRET_CODES[day];
+      const hint = document.getElementById("code-hint");
+      hint.textContent = message + " « " + code + " »";
+      codeInput.value = code;
+      codeFeedback.textContent =
+        "Tu peux copier le code ci-dessus (ou le retaper) puis cliquer sur « Valider le code » pour révéler le fragment.";
+      codeFeedback.className = "small success";
+    }
+
+    validateCodeBtn.addEventListener("click", () => {
+      if (!currentDay) return;
+      const expected = SECRET_CODES[currentDay];
+      const value = codeInput.value.trim().toUpperCase();
+      if (!value) {
+        codeFeedback.textContent = "Entre un code, sinon la magie ne marche pas. ✨";
+        codeFeedback.className = "error";
+        return;
+      }
+      if (value === expected.toUpperCase()) {
+        revealPiece(currentDay);
+        codeFeedback.textContent =
+          "Parfait ! Le fragment du jour " + currentDay + " est maintenant révélé.";
+        codeFeedback.className = "success";
+      } else {
+        codeFeedback.textContent = "Ce code ne correspond pas à ce jour. Réessaie !";
+        codeFeedback.className = "error";
+      }
+    });
+
+    function revealPiece(day) {
+      revealedPieces[day] = true;
+      saveRevealedPieces(revealedPieces);
+
+      const piece = piecesGridEl.querySelector('.piece[data-day="' + day + '"]');
+      if (piece) {
+        piece.classList.remove("locked");
+        piece.classList.add("revealed");
+        const inner = piece.querySelector("span:not(.piece-label)");
+        if (inner) {
+          inner.textContent = STEAM_KEY_FRAGMENTS[day] || "(fragment)";
+        }
+      }
+
+      updateFullKeyDisplay();
+    }
+
+    function updateFullKeyDisplay() {
+      if (!fullKeyEl) return;
+
+      const days = [1, 2, 3, 4, 5, 6, 7, 8];
+      const revealedCount = days.filter(d => revealedPieces[d]).length;
+      const allRevealed = revealedCount === days.length;
+
+      if (allRevealed) {
+        fullKeyEl.textContent = "Clé Steam complète : " + FULL_STEAM_KEY + " 🎮";
+      } else {
+        fullKeyEl.textContent =
+          "Fragments révélés : " + revealedCount + "/" + days.length +
+          " — continue pour reconstituer la clé Steam !";
+      }
+    }
+  </script>
+</body>
+</html>
