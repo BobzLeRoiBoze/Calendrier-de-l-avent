@@ -705,7 +705,7 @@
 
       const timerEl = document.createElement("div");
       timerEl.className = "timer";
-      timerEl.textContent = "05:00";
+      timerEl.textContent = "02:00";
 
       const info = document.createElement("p");
       info.className = "small";
@@ -717,7 +717,7 @@
       btn.textContent = "Démarrer le défi";
 
       btn.addEventListener("click", () => {
-        startTimer(day, 5 * 60, timerEl, btn);
+        startTimer(day, 2 * 60, timerEl, btn);
       });
 
       section.appendChild(title);
