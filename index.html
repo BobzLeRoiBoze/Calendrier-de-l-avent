@@ -336,17 +336,25 @@
       <!-- Boutons générés en JS -->
     </div>
 
-    <!-- Aperçu des fragments de clé -->
+    <!-- Clé 1 : jours 1 à 8 -->
     <div class="pieces-container">
       <strong>Fragments de la clé Steam n°1 (jours 1 à 8)</strong>
       <p class="small">
-        Chaque jour te donne un fragment de la clé Steam. Quand les 8 fragments seront révélés,
+        Chaque jour te donne un fragment de la clé Steam n°1. Quand les 8 fragments seront révélés,
         tu auras la clé complète du jeu à activer sur Steam.
       </p>
-      <div class="pieces-grid" id="pieces-grid">
-        <!-- Fragments générés en JS -->
-      </div>
-      <p id="full-key" class="small"></p>
+      <div class="pieces-grid" id="pieces-grid-1"></div>
+      <p id="full-key-1" class="small"></p>
+    </div>
+
+    <!-- Clé 2 : jours 9 à 16 -->
+    <div class="pieces-container">
+      <strong>Fragments de la clé Steam n°2 (jours 9 à 16)</strong>
+      <p class="small">
+        Encore un jeu ! Les jours 9 à 16 te donnent une deuxième clé Steam, morceau par morceau.
+      </p>
+      <div class="pieces-grid" id="pieces-grid-2"></div>
+      <p id="full-key-2" class="small"></p>
     </div>
   </div>
 
@@ -378,13 +386,9 @@
   <script>
     /********** CONFIG **********/
 
-    // Année du calendrier (à adapter si besoin)
     const CALENDAR_YEAR = 2025;
+    const DEBUG_IGNORE_DATES = false; // mets true pour tester
 
-    // Pour tester sans attendre les bonnes dates
-    const DEBUG_IGNORE_DATES = false; // mets false quand tu seras en décembre
-
-    // Codes secrets par jour (tu as déjà mis les tiens ici)
     const SECRET_CODES = {
       1: "956472",
       2: "682547",
@@ -393,13 +397,19 @@
       5: "159874",
       6: "MAITRE",
       7: "639825",
-      8: "854658"
+      8: "854658",
+      9: "112233",
+      10: "445566",
+      11: "778899",
+      12: "SEIGNEUR",
+      13: "121212",
+      14: "343434",
+      15: "565656",
+      16: "787878"
     };
 
-    // Fragments de la clé Steam pour les jours 1 à 8
-    // ⚠️ À ADAPTER avec ta vraie clé, découpée en 8 morceaux !
-    // Exemple : si ta clé est AAAA1-BBBB2-CCCC3-DDDD4-EEEE5-FFFF6-GGGG7-HHHH8
-    const STEAM_KEY_FRAGMENTS = {
+    // Clé 1 (jours 1–8) — tu peux adapter à ta vraie clé
+    const STEAM_KEY_FRAGMENTS_1 = {
       1: "BQ",
       2: "AT",
       3: "0-",
@@ -409,13 +419,22 @@
       7: "3T",
       8: "0F"
     };
+    const FULL_STEAM_KEY_1 = "BQAT0-NY0JP-93T0F";
 
-    // Clé complète (les 8 morceaux assemblés)
-    const FULL_STEAM_KEY = "BQAT0-NY0JP-93T0F";
+    // Clé 2 (jours 9–16) — à adapter aussi
+    const STEAM_KEY_FRAGMENTS_2 = {
+      9:  "AB",
+      10: "CD",
+      11: "12",
+      12: "EF",
+      13: "34",
+      14: "GH",
+      15: "56",
+      16: "IJ"
+    };
+    const FULL_STEAM_KEY_2 = "ABCD1-2EF34-GH56IJ";
 
-    // Jour -> Date de déblocage (1 = 1/12, etc.)
     function getUnlockDate(day) {
-      // Mois 11 = décembre (0-indexé)
       return new Date(CALENDAR_YEAR, 11, day, 0, 0, 0, 0);
     }
 
@@ -434,8 +453,7 @@
       });
     }
 
-    // Sauvegarde quels fragments sont déjà révélés dans le localStorage
-    const STORAGE_KEY = "avent_pieces_revealed_v1";
+    const STORAGE_KEY = "avent_pieces_revealed_v2";
 
     function loadRevealedPieces() {
       try {
@@ -453,12 +471,14 @@
 
     let revealedPieces = loadRevealedPieces();
 
-    /********** DOM DE BASE **********/
+    /********** DOM **********/
 
     const todayInfoEl = document.getElementById("today-info");
     const daysGridEl = document.getElementById("days-grid");
-    const piecesGridEl = document.getElementById("pieces-grid");
-    const fullKeyEl = document.getElementById("full-key");
+    const piecesGrid1El = document.getElementById("pieces-grid-1");
+    const piecesGrid2El = document.getElementById("pieces-grid-2");
+    const fullKey1El = document.getElementById("full-key-1");
+    const fullKey2El = document.getElementById("full-key-2");
 
     const modalEl = document.getElementById("challenge-modal");
     const modalCloseBtn = document.getElementById("modal-close");
@@ -483,7 +503,7 @@
     }
 
     function createDayButtons() {
-      for (let day = 1; day <= 8; day++) {
+      for (let day = 1; day <= 16; day++) {
         const btn = document.createElement("button");
         btn.className = "day-button";
         btn.dataset.day = String(day);
@@ -509,8 +529,8 @@
       }
     }
 
-    function createPieces() {
-      for (let day = 1; day <= 8; day++) {
+    function createPiecesRange(startDay, endDay, gridEl, fragmentMap) {
+      for (let day = startDay; day <= endDay; day++) {
         const piece = document.createElement("div");
         piece.className = "piece locked";
         piece.dataset.day = String(day);
@@ -526,7 +546,7 @@
 
         const inner = document.createElement("span");
         if (revealedPieces[day]) {
-          inner.textContent = STEAM_KEY_FRAGMENTS[day] || "(fragment)";
+          inner.textContent = fragmentMap[day] || "(fragment)";
         } else {
           inner.textContent = "Fragment caché";
         }
@@ -534,10 +554,15 @@
         piece.appendChild(label);
         piece.appendChild(inner);
 
-        piecesGridEl.appendChild(piece);
+        gridEl.appendChild(piece);
       }
+    }
 
-      updateFullKeyDisplay();
+    function createPieces() {
+      createPiecesRange(1, 8, piecesGrid1El, STEAM_KEY_FRAGMENTS_1);
+      createPiecesRange(9, 16, piecesGrid2El, STEAM_KEY_FRAGMENTS_2);
+      updateFullKeyDisplay1();
+      updateFullKeyDisplay2();
     }
 
     initTodayInfo();
@@ -562,7 +587,6 @@
         currentTimerInterval = null;
       }
 
-      // Status (badge)
       modalStatus.innerHTML = "";
       const badge = document.createElement("span");
       if (!unlocked) {
@@ -579,7 +603,6 @@
       }
       modalStatus.appendChild(badge);
 
-      // Si le jour n'est pas encore ouvert et qu'on n'est pas en debug
       if (!unlocked && !DEBUG_IGNORE_DATES) {
         const msg = document.createElement("p");
         msg.className = "small";
@@ -610,7 +633,7 @@
       if (e.target === modalEl) closeModal();
     });
 
-    /********** RENDU DES DÉFIS **********/
+    /********** DÉFIS **********/
 
     function renderChallengeContent(day) {
       switch (day) {
@@ -658,12 +681,72 @@
             "Défi de l'alphabet : Dessine chaque lettre de l'alphabet avec tes pieds, les abdos bien gainés ! Quand c'est fait, clique sur « Défi accompli » pour obtenir ton code."
           );
           break;
+
+        /* ---- Nouveaux défis 9 à 16 ---- */
+
+        case 9:
+          renderSimpleValidateDay(
+            9,
+            "Faire croire à Ambre que tu es tombée enceinte",
+            "Mission trolling : fais croire à Ambre que tu es tombée enceinte. Quand tu auras joué ta petite mise en scène, clique sur « Défi accompli »."
+          );
+          break;
+        case 10:
+          renderSimpleValidateDay(
+            10,
+            "Tu as gagné un massage",
+            "Aujourd'hui, tu ne fais rien : tu profites. Quand tu réclames ton massage (et que tu l'as reçu, évidemment), clique sur « Défi accompli » pour récupérer ton code."
+          );
+          break;
+        case 11:
+          renderSimpleValidateDay(
+            11,
+            "50 biceps curl à 10 kg",
+            "Fais 50 biceps curl à 10 kg (tu peux les fractionner, mais pas tricher 😈). Quand c'est fait, clique sur « Défi accompli »."
+          );
+          break;
+        case 12:
+          renderSimpleValidateDay(
+            12,
+            "Courir 5 km",
+            "Va courir 5 km (à ton rythme, mais sans abandonner). Quand tu as terminé ta course, clique sur « Défi accompli » pour obtenir ton code."
+          );
+          break;
+        case 13:
+          renderSimpleValidateDay(
+            13,
+            "Fais un bon repas en amoureux",
+            "Organise un petit repas en amoureux : plat, dessert, ambiance cosy… Quand le repas est fait (ou planifié sérieusement), clique sur « Défi accompli »."
+          );
+          break;
+        case 14:
+          renderSimpleValidateDay(
+            14,
+            "Fais-moi une danse",
+            "Prépare-moi une petite danse (ridicule, sexy, mignonne, comme tu veux). Quand tu me l'auras faite, clique sur « Défi accompli » pour ton code."
+          );
+          break;
+        case 15:
+          renderSimpleValidateDay(
+            15,
+            "Petit moment douceur",
+            "Écris une petite liste de 5 choses que tu aimes chez toi, et 5 choses que tu aimes chez nous. Quand c'est fait, clique sur « Défi accompli »."
+          );
+          break;
+        case 16:
+          renderSimpleValidateDay(
+            16,
+            "Tu gagnes un bon très spécial",
+            "Aujourd'hui, tu gagnes un bon pour un câlin très intense… tu gagnes un bon pour un cunni. Quand tu auras décidé quand l'utiliser, clique sur « Défi accompli » pour révéler le fragment de clé."
+          );
+          break;
+
         default:
           challengeContent.textContent = "Défi non défini pour ce jour.";
       }
     }
 
-    /* Jour 1 : image à télécharger et inspecter */
+    /* Jour 1 : image métadonnées */
 
     function renderDay1() {
       const section = document.createElement("div");
@@ -677,21 +760,25 @@
         "Le code secret du jour se trouve quelque part caché dans cette image... Sauras-tu le trouver ?";
 
       const link = document.createElement("a");
-      link.href = "GagaLeOuf.png"; // <-- ton image
+      link.href = "GagaLeOuf.png"; // ton image
       link.download = "GagaLeOuf.png";
       link.textContent = "Télécharger l'image du jour 1";
       link.className = "link";
 
+      const p2 = document.createElement("p");
+      p2.className = "small";
+      p2.textContent =
+        "Astuce : regarde les propriétés de l'image sur ton ordinateur ou utilise un site pour afficher les métadonnées (EXIF, commentaires, etc.).";
 
       section.appendChild(title);
       section.appendChild(p1);
       section.appendChild(link);
-
+      section.appendChild(p2);
 
       challengeContent.appendChild(section);
     }
 
-    /* Jours 2 & 5 : chronomètre 5 minutes */
+    /* Jours 2 & 5 : timer 5 minutes */
 
     function renderDayWithTimer(day, titleText, description) {
       const section = document.createElement("div");
@@ -705,7 +792,7 @@
 
       const timerEl = document.createElement("div");
       timerEl.className = "timer";
-      timerEl.textContent = "02:00";
+      timerEl.textContent = "05:00";
 
       const info = document.createElement("p");
       info.className = "small";
@@ -717,7 +804,7 @@
       btn.textContent = "Démarrer le défi";
 
       btn.addEventListener("click", () => {
-        startTimer(day, 2 * 60, timerEl, btn);
+        startTimer(day, 5 * 60, timerEl, btn);
       });
 
       section.appendChild(title);
@@ -758,7 +845,7 @@
       }, 1000);
     }
 
-    /* Jours 4, 7, 8 : bouton "Défi accompli" */
+    /* Jours avec simple bouton "Défi accompli" */
 
     function renderSimpleValidateDay(day, titleText, description) {
       const section = document.createElement("div");
@@ -785,7 +872,7 @@
       challengeContent.appendChild(section);
     }
 
-    /* Jour 3 : Quizz chevaux (niveau galop 6 raisonnable) */
+    /* Jour 3 : quizz cheval */
 
     function renderDay3Quiz() {
       const section = document.createElement("div");
@@ -862,7 +949,7 @@
           const radio = document.createElement("input");
           radio.type = "radio";
           radio.name = q.id;
-          radio.value = optText[0]; // La lettre A/B/C/D
+          radio.value = optText[0];
 
           label.appendChild(radio);
           label.appendChild(document.createTextNode(" " + optText));
@@ -924,7 +1011,7 @@
       challengeContent.appendChild(section);
     }
 
-    /* Jour 6 : appeler Maître toute la journée, code visible à 22h */
+    /* Jour 6 : Maître + code à 22h */
 
     function renderDay6() {
       const section = document.createElement("div");
@@ -951,7 +1038,7 @@
         0,
         0,
         0
-      ); // 6 décembre, 22h
+      );
 
       const msg = document.createElement("p");
       msg.className = "small";
@@ -976,7 +1063,7 @@
       challengeContent.appendChild(section);
     }
 
-    /********** GESTION DES CODES **********/
+    /********** GESTION DES CODES / CLÉS **********/
 
     function showFoundCode(day, message) {
       const code = SECRET_CODES[day];
@@ -1012,32 +1099,58 @@
       revealedPieces[day] = true;
       saveRevealedPieces(revealedPieces);
 
-      const piece = piecesGridEl.querySelector('.piece[data-day="' + day + '"]');
+      let gridEl, fragments;
+      if (day >= 1 && day <= 8) {
+        gridEl = piecesGrid1El;
+        fragments = STEAM_KEY_FRAGMENTS_1;
+      } else if (day >= 9 && day <= 16) {
+        gridEl = piecesGrid2El;
+        fragments = STEAM_KEY_FRAGMENTS_2;
+      } else {
+        return;
+      }
+
+      const piece = gridEl.querySelector('.piece[data-day="' + day + '"]');
       if (piece) {
         piece.classList.remove("locked");
         piece.classList.add("revealed");
         const inner = piece.querySelector("span:not(.piece-label)");
         if (inner) {
-          inner.textContent = STEAM_KEY_FRAGMENTS[day] || "(fragment)";
+          inner.textContent = fragments[day] || "(fragment)";
         }
       }
 
-      updateFullKeyDisplay();
+      updateFullKeyDisplay1();
+      updateFullKeyDisplay2();
     }
 
-    function updateFullKeyDisplay() {
-      if (!fullKeyEl) return;
-
+    function updateFullKeyDisplay1() {
+      if (!fullKey1El) return;
       const days = [1, 2, 3, 4, 5, 6, 7, 8];
       const revealedCount = days.filter(d => revealedPieces[d]).length;
       const allRevealed = revealedCount === days.length;
 
       if (allRevealed) {
-        fullKeyEl.textContent = "Clé Steam complète : " + FULL_STEAM_KEY + " 🎮";
+        fullKey1El.textContent = "Clé Steam n°1 complète : " + FULL_STEAM_KEY_1 + " 🎮";
       } else {
-        fullKeyEl.textContent =
+        fullKey1El.textContent =
           "Fragments révélés : " + revealedCount + "/" + days.length +
-          " — continue pour reconstituer la clé Steam !";
+          " — continue pour reconstituer la clé Steam n°1 !";
+      }
+    }
+
+    function updateFullKeyDisplay2() {
+      if (!fullKey2El) return;
+      const days = [9, 10, 11, 12, 13, 14, 15, 16];
+      const revealedCount = days.filter(d => revealedPieces[d]).length;
+      const allRevealed = revealedCount === days.length;
+
+      if (allRevealed) {
+        fullKey2El.textContent = "Clé Steam n°2 complète : " + FULL_STEAM_KEY_2 + " 🎮";
+      } else {
+        fullKey2El.textContent =
+          "Fragments révélés : " + revealedCount + "/" + days.length +
+          " — continue pour reconstituer la clé Steam n°2 !";
       }
     }
   </script>
